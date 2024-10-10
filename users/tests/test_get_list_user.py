@@ -30,8 +30,8 @@ class UserListTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         self.assertEqual(len(response.data["results"]), 2)
-        self.assertEqual(response.data["results"][0]["email"], self.admin_user.email)
-        self.assertEqual(response.data["results"][1]["email"], self.regular_user.email)
+        self.assertEqual(response.data["results"][0]["email"], self.regular_user.email)
+        self.assertEqual(response.data["results"][1]["email"], self.admin_user.email)
 
     def test_non_admin_cannot_list_users(self):
         """Test that a non-admin user cannot access the list of users."""
