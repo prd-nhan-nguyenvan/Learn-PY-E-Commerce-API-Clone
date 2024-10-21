@@ -2,6 +2,7 @@ from django.core.cache import cache
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -82,18 +83,46 @@ class GetCartView(APIView):
 class RemoveFromCartView(APIView):
     @swagger_auto_schema(tags=["Cart"])
     def delete(self, request, product_id, *args, **kwargs):
-        cart_item = CartItem.objects.filter(
-            cart__user=request.user, product_id=product_id
-        ).first()
-
-        if not cart_item:
-            return Response(
-                {"detail": "Item not found in cart."}, status=status.HTTP_404_NOT_FOUND
-            )
+        cart_item = get_object_or_404(
+            CartItem.objects.filter(cart__user=request.user), product_id=product_id
+        )
 
         cart_item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @swagger_auto_schema(
+        tags=["Cart"],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "quantity": openapi.Schema(
+                    type=openapi.TYPE_INTEGER, minimum=1, example=1
+                )
+            },
+        ),
+    )
+    def patch(self, request, product_id, *args, **kwargs):
+        cart_item = get_object_or_404(
+            CartItem.objects.filter(cart__user=request.user), product_id=product_id
+        )
+
+        quantity = request.data.get("quantity")
+
+        if quantity is None or quantity <= 0:
+            cart_item.delete()
+            return Response(
+                {"detail": "Item removed from cart successfully."},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+
+        if quantity != cart_item.quantity:
+            cart_item.quantity = quantity
+            cart_item.save()
 
         return Response(
-            {"detail": "Item removed from cart successfully."},
-            status=status.HTTP_204_NO_CONTENT,
+            {
+                "message": "Cart item updated successfully",
+                "cart_item": CartItemSerializer(cart_item).data,
+            },
+            status=status.HTTP_200_OK,
         )
