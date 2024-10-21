@@ -15,10 +15,13 @@ class AddToCartView(APIView):
         serializer = AddToCartSerializer(
             data=request.data, context={"request": request}
         )
+
         if serializer.is_valid():
-            cart_item = serializer.save()
+            cart_item = self.add_to_cart(request.user, serializer.validated_data)
+
             cache_key = f"user_cart_{request.user.id}"
             cache.delete(cache_key)
+
             return Response(
                 {
                     "message": "Item added to cart successfully",
@@ -27,6 +30,21 @@ class AddToCartView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def add_to_cart(self, user, validated_data):
+        product = validated_data["product"]
+        quantity = validated_data["quantity"]
+
+        cart, _ = Cart.objects.get_or_create(user=user)
+
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart, product=product, defaults={"quantity": quantity}
+        )
+        if not created:
+            cart_item.quantity += quantity
+            cart_item.save()
+
+        return cart_item
 
 
 class GetCartView(APIView):
