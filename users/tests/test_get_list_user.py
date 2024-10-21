@@ -1,19 +1,23 @@
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from authentication.models import CustomUser
+User = get_user_model()
 
 
 class UserListTest(APITestCase):
     def setUp(self):
-        self.admin_user = CustomUser.objects.create_superuser(
+        User.objects.all().delete()
+        cache.clear()
+        self.admin_user = User.objects.create_superuser(
             email="admin@example.com",
             username="adminuser",
             password="adminpassword",
         )
 
-        self.regular_user = CustomUser.objects.create_user(
+        self.regular_user = User.objects.create_user(
             email="user@example.com",
             username="regularuser",
             password="userpassword",

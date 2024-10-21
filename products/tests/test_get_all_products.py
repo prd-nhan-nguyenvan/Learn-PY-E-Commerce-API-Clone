@@ -97,11 +97,10 @@ class ProductListTest(APITestCase):
         """Test that an admin user can get the list of all products."""
         self.client.force_authenticate(user=self.admin_user)
         response = self.client.get(self.url)
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         self.assertEqual(response.data["count"], 2)
+        self.assertEqual(response.data["results"][0]["name"], "Organic Coconut Oil")
         self.assertEqual(
-            response.data["results"][0]["name"], "Organic Extra Virgin Olive Oil"
+            response.data["results"][1]["name"], "Organic Extra Virgin Olive Oil"
         )
-        self.assertEqual(response.data["results"][1]["name"], "Organic Coconut Oil")
