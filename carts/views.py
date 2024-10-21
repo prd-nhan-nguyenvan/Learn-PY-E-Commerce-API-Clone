@@ -1,4 +1,5 @@
 from django.core.cache import cache
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
@@ -29,14 +30,26 @@ class AddToCartView(APIView):
 
 
 class GetCartView(APIView):
-    @swagger_auto_schema(tags=["Cart"])
+    @swagger_auto_schema(
+        tags=["Cart"],
+        operation_description="Retrieve the cart for the logged-in user",
+        responses={
+            200: openapi.Response(
+                description="A successful response with the user's cart",
+                schema=CartSerializer,  # Describes the response structure
+            ),
+            404: openapi.Response(
+                description="Cart is empty or does not exist",
+            ),
+        },
+    )
     def get(self, request, *args, **kwargs):
         cache_key = f"user_cart_{request.user.id}"
         cart = cache.get(cache_key)
 
         if cart is None:
             cart = Cart.objects.filter(user=request.user).first()
-            cache.set(cache_key, cart, timeout=60 * 5)  # Cache for 5 minutes
+            cache.set(cache_key, cart, timeout=60 * 5)
 
         if not cart:
             return Response(
