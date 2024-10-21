@@ -119,9 +119,6 @@ class GetCartView(APIView):
                     },
                 ),
             ),
-            404: openapi.Response(
-                description="Cart is empty or does not exist",
-            ),
         },
     )
     def get(self, request, *args, **kwargs):
@@ -129,14 +126,8 @@ class GetCartView(APIView):
         cart = cache.get(cache_key)
 
         if cart is None:
-            cart = Cart.objects.filter(user=request.user).first()
+            cart = Cart.objects.get_or_create(user=request.user)
             cache.set(cache_key, cart, timeout=60 * 5)
-
-        if not cart:
-            return Response(
-                {"detail": "Cart is empty or does not exist."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
 
         serializer = CartSerializer(cart)
         return Response(serializer.data, status=status.HTTP_200_OK)
