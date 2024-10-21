@@ -11,7 +11,57 @@ from .serializers import AddToCartSerializer, CartItemSerializer, CartSerializer
 
 
 class AddToCartView(APIView):
-    @swagger_auto_schema(tags=["Cart"], request_body=AddToCartSerializer)
+    @swagger_auto_schema(
+        tags=["Cart"],
+        request_body=AddToCartSerializer,
+        responses={
+            201: openapi.Response(
+                description="Item added to cart successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "message": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="Item added to cart successfully",
+                        ),
+                        "cart_item": {
+                            "id": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
+                            "product_id": openapi.Schema(
+                                type=openapi.TYPE_INTEGER, example=1
+                            ),
+                            "quantity": openapi.Schema(
+                                type=openapi.TYPE_INTEGER, example=1
+                            ),
+                        },
+                    },
+                ),
+            ),
+            400: openapi.Response(
+                description="Invalid input data",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "detail": openapi.Schema(
+                            type=openapi.TYPE_OBJECT
+                        ),  # Detailed validation errors
+                    },
+                ),
+            ),
+            401: openapi.Response(
+                description="Unauthorized",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "detail": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="Authentication credentials were not provided.",
+                        ),
+                    },
+                ),
+            ),
+        },
+        operation_description="Add an item to the cart",
+    )
     def post(self, request, *args, **kwargs):
         serializer = AddToCartSerializer(
             data=request.data, context={"request": request}
@@ -57,6 +107,18 @@ class GetCartView(APIView):
                 description="A successful response with the user's cart",
                 schema=CartSerializer,  # Describes the response structure
             ),
+            401: openapi.Response(
+                description="Unauthorized",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "detail": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="Authentication credentials were not provided.",
+                        ),
+                    },
+                ),
+            ),
             404: openapi.Response(
                 description="Cart is empty or does not exist",
             ),
@@ -80,8 +142,25 @@ class GetCartView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class RemoveFromCartView(APIView):
-    @swagger_auto_schema(tags=["Cart"])
+class UpdateRemoveCartItemView(APIView):
+    @swagger_auto_schema(
+        tags=["Cart"],
+        responses={
+            204: openapi.Response(description="Item removed from cart successfully"),
+            404: openapi.Response(
+                description="Cart item not found",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "detail": openapi.Schema(
+                            type=openapi.TYPE_STRING, example="Item not found in cart."
+                        ),
+                    },
+                ),
+            ),
+        },
+        operation_description="Remove an item from the cart",
+    )
     def delete(self, request, product_id, *args, **kwargs):
         cart_item = get_object_or_404(
             CartItem.objects.filter(cart__user=request.user), product_id=product_id
@@ -100,6 +179,42 @@ class RemoveFromCartView(APIView):
                 )
             },
         ),
+        responses={
+            200: openapi.Response(
+                description="Cart item updated successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "message": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="Cart item updated successfully",
+                        ),
+                        "cart_item": {
+                            "id": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
+                            "product_id": openapi.Schema(
+                                type=openapi.TYPE_INTEGER, example=1
+                            ),
+                            "quantity": openapi.Schema(
+                                type=openapi.TYPE_INTEGER, example=1
+                            ),
+                        },
+                    },
+                ),
+            ),
+            204: openapi.Response(description="Item removed from cart successfully"),
+            404: openapi.Response(
+                description="Cart item not found",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "detail": openapi.Schema(
+                            type=openapi.TYPE_STRING, example="Item not found in cart."
+                        ),
+                    },
+                ),
+            ),
+        },
+        operation_description="Update the quantity of an item in the cart",
     )
     def patch(self, request, product_id, *args, **kwargs):
         cart_item = get_object_or_404(
